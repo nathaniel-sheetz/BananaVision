@@ -45,8 +45,25 @@ def show_debug_windows(image_path: str) -> None:
     for key, title in window_names.items():
         cv2.imshow(title, visualizations[key])
 
-    print("\nDebug windows opened. Press any key to close.")
-    cv2.waitKey(0)
+    print("\nDebug windows opened. Press any key or close windows to continue.")
+
+    # Poll for key press or window closure (X button)
+    while True:
+        key = cv2.waitKey(100)  # 100ms timeout
+        if key != -1:  # Key was pressed
+            break
+        # Check if any window was closed
+        all_closed = True
+        for title in window_names.values():
+            try:
+                if cv2.getWindowProperty(title, cv2.WND_PROP_VISIBLE) >= 1:
+                    all_closed = False
+                    break
+            except cv2.error:
+                pass  # Window doesn't exist
+        if all_closed:
+            break
+
     cv2.destroyAllWindows()
 
 
