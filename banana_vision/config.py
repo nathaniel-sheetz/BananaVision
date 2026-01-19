@@ -19,3 +19,23 @@ SPOT_THRESHOLD = 0.05
 
 # Minimum contour area to filter noise (pixels)
 MIN_CONTOUR_AREA = 500
+
+# === Banana Segmentation Parameters ===
+
+# Local maxima kernel size for watershed segmentation
+# This determines minimum separation between banana centers (pixels)
+# Smaller = more sensitive to individual bananas
+LOCAL_MAXIMA_KERNEL_SIZE = 15
+
+# Minimum distance transform value to consider as a banana center
+# Filters out noise and thin regions
+MIN_DISTANCE_THRESHOLD = 5.0
+
+# Minimum area for a segmented banana (pixels)
+MIN_BANANA_AREA = 800
+
+# Interior erosion for per-banana spot detection
+BANANA_INTERIOR_EROSION_SIZE = 10
+
+# Minimum spot pixels to classify as "spotted" (1 = any spot counts)
+MIN_SPOT_PIXELS = 5
