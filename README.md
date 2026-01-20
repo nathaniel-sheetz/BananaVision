@@ -124,6 +124,84 @@ Filters out small detected regions (noise).
 - **Higher value**: Ignores small banana fragments or noise
 - **Lower value**: Includes smaller regions but may catch non-banana artifacts
 
+### Banana Segmentation (Separating Touching Bananas)
+
+BananaVision uses edge detection and watershed segmentation to separate touching bananas. If bananas are being incorrectly split into fragments, or not being separated at all, adjust these parameters:
+
+#### Canny Edge Thresholds
+
+In `banana_vision/detector.py` (~line 115):
+
+```python
+edges = cv2.Canny(gray, 120, 240)
+```
+
+These thresholds control which edges are detected between bananas. The two values are the low and high thresholds.
+
+**Effect of changes:**
+- **Higher values (e.g., 150, 300)**: Only strong edges detected → less fragmentation, but touching bananas may not separate
+- **Lower values (e.g., 50, 150)**: More edges detected → better separation of touching bananas, but may fragment single bananas
+
+**Symptoms and fixes:**
+- Single bananas split into fragments → raise thresholds
+- Touching bananas not separating → lower thresholds
+
+#### Edge Dilation Iterations
+
+In `banana_vision/detector.py` (~line 122):
+
+```python
+boundaries = cv2.dilate(edges_in_banana, edge_kernel, iterations=2)
+```
+
+Controls how much detected edges are expanded to create boundary gaps.
+
+**Effect of changes:**
+- **Higher iterations (e.g., 3)**: Wider gaps between regions → more aggressive separation
+- **Lower iterations (e.g., 1)**: Narrower gaps → less separation, fewer fragments
+
+#### Minimum Banana Area
+
+In `banana_vision/config.py`:
+
+```python
+MIN_BANANA_AREA = 800
+```
+
+Minimum pixel area for a segmented region to be counted as a banana. Filters out small fragments.
+
+**Effect of changes:**
+- **Higher value (e.g., 1500)**: Filters out small fragments but may miss small bananas
+- **Lower value (e.g., 300)**: Keeps smaller regions but may include fragments
+
+#### Local Maxima Kernel Size
+
+In `banana_vision/config.py`:
+
+```python
+LOCAL_MAXIMA_KERNEL_SIZE = 15
+```
+
+Controls minimum separation between detected banana centers in the watershed algorithm.
+
+**Effect of changes:**
+- **Larger (e.g., 25)**: Requires more distance between banana centers → fewer, larger segments
+- **Smaller (e.g., 10)**: Allows closer centers → more segments, may over-segment
+
+#### Minimum Distance Threshold
+
+In `banana_vision/config.py`:
+
+```python
+MIN_DISTANCE_THRESHOLD = 5.0
+```
+
+Minimum distance transform value to qualify as a banana center. Filters thin regions.
+
+**Effect of changes:**
+- **Higher value**: Only thick banana regions qualify as centers
+- **Lower value**: Thinner regions can be banana centers
+
 ## Debug Mode
 
 Run with `--debug` to visualize detection:
@@ -153,5 +231,5 @@ BananaVision/
 
 - Optimized for well-lit retail/display settings
 - Synthetic or unusually colored images may require threshold tuning
-- Bananas that are touching may be detected as a single region (classification still works per-pixel)
+- Touching bananas are separated using edge detection, but heavily overlapping bananas may still merge or fragment (see Segmentation tuning above)
 - Very dark or overexposed images may need adjusted value (V) thresholds

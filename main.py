@@ -12,25 +12,42 @@ from banana_vision.analyzer import create_debug_visualization
 
 def format_results(image_path: str, results: dict) -> str:
     """Format analysis results for display."""
-    lines = [
-        f"Analyzing: {os.path.basename(image_path)}",
-        "=" * 45,
-        "Banana Ripeness Analysis",
-        "-" * 45,
-        f"Green:              {results['green_percent']:>6.1f}%",
-        f"Yellow (no spots):  {results['yellow_clean_percent']:>6.1f}%",
-        f"Yellow (spotted):   {results['yellow_spotted_percent']:>6.1f}%",
-        "-" * 45,
-        f"Total banana area: {results['total_banana_pixels']:,} pixels",
-        "=" * 45,
-    ]
+    mode = results.get("mode", "pixel")
+
+    if mode == "banana":
+        lines = [
+            f"Analyzing: {os.path.basename(image_path)}",
+            "=" * 50,
+            "Banana Ripeness Analysis (Per-Banana)",
+            "-" * 50,
+            f"Green:                {results['green_percent']:>5.1f}%  ({results['green_count']} bananas)",
+            f"Yellow (no spots):    {results['yellow_clean_percent']:>5.1f}%  ({results['yellow_clean_count']} bananas)",
+            f"Yellow (spotted):     {results['yellow_spotted_percent']:>5.1f}%  ({results['yellow_spotted_count']} bananas)",
+            "-" * 50,
+            f"Total bananas detected: {results['total_bananas']}",
+            "=" * 50,
+        ]
+    else:
+        lines = [
+            f"Analyzing: {os.path.basename(image_path)}",
+            "=" * 45,
+            "Banana Ripeness Analysis",
+            "-" * 45,
+            f"Green:              {results['green_percent']:>6.1f}%",
+            f"Yellow (no spots):  {results['yellow_clean_percent']:>6.1f}%",
+            f"Yellow (spotted):   {results['yellow_spotted_percent']:>6.1f}%",
+            "-" * 45,
+            f"Total banana area: {results['total_banana_pixels']:,} pixels",
+            "=" * 45,
+        ]
+
     return "\n".join(lines)
 
 
-def show_debug_windows(image_path: str) -> None:
+def show_debug_windows(image_path: str, mode: str = "banana") -> None:
     """Display debug visualization windows."""
     try:
-        visualizations = create_debug_visualization(image_path)
+        visualizations = create_debug_visualization(image_path, mode=mode)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         return
@@ -42,8 +59,19 @@ def show_debug_windows(image_path: str) -> None:
         "spot_mask": "Spot Detection",
     }
 
+    # Add category views for banana mode with counts in titles
+    if mode == "banana" and "green_bananas" in visualizations:
+        green_count = visualizations.get("green_count", 0)
+        yellow_clean_count = visualizations.get("yellow_clean_count", 0)
+        yellow_spotted_count = visualizations.get("yellow_spotted_count", 0)
+
+        window_names["green_bananas"] = f"Green Bananas ({green_count})"
+        window_names["yellow_clean"] = f"Yellow Clean ({yellow_clean_count})"
+        window_names["yellow_spotted"] = f"Yellow Spotted ({yellow_spotted_count})"
+
     for key, title in window_names.items():
-        cv2.imshow(title, visualizations[key])
+        if key in visualizations:
+            cv2.imshow(title, visualizations[key])
 
     print("\nDebug windows opened. Press any key or close windows to continue.")
 
@@ -101,16 +129,25 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py image.jpg              Analyze a single image
-  python main.py img1.jpg img2.jpg      Analyze multiple images
-  python main.py path/to/folder/        Analyze all images in a directory
-  python main.py image.jpg --debug      Show debug visualization
+  python main.py image.jpg                  Analyze a single image (banana mode)
+  python main.py image.jpg --mode=banana    Per-banana classification
+  python main.py image.jpg --mode=pixel     Legacy per-pixel classification
+  python main.py img1.jpg img2.jpg          Analyze multiple images
+  python main.py path/to/folder/            Analyze all images in a directory
+  python main.py image.jpg --debug          Show debug visualization
         """,
     )
     parser.add_argument(
         "paths",
         nargs="+",
         help="Image file(s) or directory to analyze",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["banana", "pixel"],
+        default="banana",
+        help="Analysis mode: 'banana' for per-banana classification (default), "
+             "'pixel' for legacy per-pixel classification",
     )
     parser.add_argument(
         "--debug",
@@ -128,12 +165,12 @@ Examples:
 
     for image_path in image_files:
         try:
-            results = analyze_image(image_path)
+            results = analyze_image(image_path, mode=args.mode)
             print(format_results(image_path, results))
             print()
 
             if args.debug:
-                show_debug_windows(image_path)
+                show_debug_windows(image_path, mode=args.mode)
 
         except ValueError as e:
             print(f"Error processing {image_path}: {e}", file=sys.stderr)
