@@ -7,9 +7,27 @@ A Python tool that analyzes photographs of banana displays and reports the perce
 BananaVision uses computer vision techniques to detect and classify bananas:
 
 1. **Detection**: Identifies banana pixels using HSV color masking for green and yellow hues
-2. **Classification**: Categorizes each pixel as green, yellow-clean, or yellow-spotted
-3. **Spot Detection**: Finds brown spots in the interior of yellow banana regions (excluding tips/edges)
-4. **Reporting**: Calculates percentage breakdown by pixel area
+2. **Segmentation** (optional): Separates touching bananas using edge detection and watershed algorithm
+3. **Classification**: Categorizes bananas by ripeness (green, yellow-clean, yellow-spotted)
+4. **Spot Detection**: Finds brown spots in the interior of yellow banana regions (excluding tips/edges)
+5. **Reporting**: Calculates percentage breakdown by banana count or pixel area
+
+### Analysis Modes
+
+BananaVision supports two analysis modes:
+
+**Per-Banana Mode** (default, `--mode=banana`):
+- Segments the image to identify individual bananas
+- Classifies each banana as a unit (one banana = one vote)
+- Reports percentages based on banana count
+- **Pros**: More intuitive results ("3 out of 10 bananas are spotted")
+- **Cons**: Segmentation can be imperfect—touching bananas may merge or single bananas may fragment
+
+**Per-Pixel Mode** (`--mode=pixel`):
+- Classifies each pixel independently
+- Reports percentages based on pixel area
+- **Pros**: No segmentation errors; works well when bananas overlap heavily
+- **Cons**: Large bananas have more influence than small ones; results are less intuitive
 
 ## Installation
 
@@ -24,8 +42,11 @@ Requires:
 ## Usage
 
 ```bash
-# Analyze a single image
+# Analyze a single image (per-banana mode, default)
 python main.py image.jpg
+
+# Use per-pixel mode instead
+python main.py image.jpg --mode=pixel
 
 # Analyze multiple images
 python main.py image1.jpg image2.jpg
@@ -33,12 +54,27 @@ python main.py image1.jpg image2.jpg
 # Analyze all images in a directory
 python main.py path/to/folder/
 
-# Show debug visualization (masks and contours)
+# Show debug visualization (masks, contours, and category views)
 python main.py image.jpg --debug
 ```
 
 ### Sample Output
 
+Per-banana mode (default):
+```
+Analyzing: bananas_shelf.jpg
+==================================================
+Banana Ripeness Analysis (Per-Banana)
+--------------------------------------------------
+Green:                 30.0%  (3 bananas)
+Yellow (no spots):     50.0%  (5 bananas)
+Yellow (spotted):      20.0%  (2 bananas)
+--------------------------------------------------
+Total bananas detected: 10
+==================================================
+```
+
+Per-pixel mode:
 ```
 Analyzing: bananas_shelf.jpg
 =============================================
